@@ -3,25 +3,24 @@ package com.example.demo;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
-import java.io.*;
+
 
 @RestController
 @RequestMapping("/api")
 public class GridGenerator {
 
     // Helper class to keep word and clue together
-    static class WordClue {
-        String word;
-        String clue;
-        WordClue(String word, String clue) {
-            this.word = word;
-            this.clue = clue;
-        }
-    }
+
 
     @RequestMapping("/GridStarter")
     public static void GridStarter(String[] args) {
+
+
         InputStream in = GridGenerator.class.getClassLoader().getResourceAsStream("words.csv");
         if (in == null) {
             System.out.println ("words.csv not found in resources!");
@@ -129,7 +128,7 @@ public class GridGenerator {
     }
     public static void printBoard (char [][]board){
 
-        for (char row[] : board){
+        for (char[] row : board){
             for (char ch : row){
                 System.out.print (ch + " ");
             }

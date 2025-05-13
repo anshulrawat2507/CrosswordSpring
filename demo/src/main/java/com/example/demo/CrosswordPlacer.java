@@ -1,7 +1,7 @@
 package com.example.demo;
 
 public class CrosswordPlacer {
-        public static final int SIZE = 7;
+        public  static final int SIZE = 7;
 
         public static boolean placeWords(char[][] board, String[] words, int index) {
             if (index == words.length) return true;
@@ -44,7 +44,6 @@ public class CrosswordPlacer {
                 if (cell == 'x' || (cell != '+' && cell != word.charAt(i))) return false;
             }
 
-            // Check before and after cell
             if (col > 0 && board[row][col - 1] != '+') return false;
             if (col + word.length() < SIZE && board[row][col + word.length()] != '+') return false;
 
