@@ -22,11 +22,12 @@ public class CrossWordGeneratorController {
     @GetMapping("/generateCrossword/{size}")
     public ResponseEntity<?> gridStarter (@PathVariable int size){
 
-        if (size != 5 && size != 7){
-            return new ResponseEntity<>("Invalid size. Please choose either 5 or 7 for the puzzle grid", HttpStatus.BAD_REQUEST);
+        if (size == 5 || size == 6 || size == 7 | size == 8){
+            return new ResponseEntity<>(service.gridStarter(size),HttpStatus.OK);
         }
 
-        return new ResponseEntity<>(service.gridStarter(size),HttpStatus.OK);
+        return new ResponseEntity<>("Invalid size. Please choose either 5 or 7 for the puzzle grid", HttpStatus.BAD_REQUEST);
+
     }
 
 }

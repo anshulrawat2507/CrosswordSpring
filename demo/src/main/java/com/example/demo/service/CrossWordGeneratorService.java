@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.format.SignStyle;
 import java.util.*;
 
 
@@ -52,11 +53,18 @@ public class CrossWordGeneratorService {
 
         if (size == 5){
             minWords = 5;
+            maxWords = 8;
+        }
+        else if (size == 6){
+            minWords = 6;
             maxWords = 10;
         }
-
-        else {
+        else if (size == 7){
             minWords = 7;
+            maxWords = 12;
+        }
+        else {
+            minWords = 8;
             maxWords = 14;
         }
         int numWords = Math.min(filteredPairs.size(), minWords + new Random().nextInt(maxWords - minWords + 1));
@@ -67,13 +75,25 @@ public class CrossWordGeneratorService {
 
         if (placer.placeWords(solutionBoard, words, 0)) {
             List<String> clues = new ArrayList<>();
+            List <String> tempWords = new ArrayList<>();
+
             for (WordClue wc : selectedPairs) {
                 clues.add(wc.getClue());
+                tempWords.add(wc.getWord());
             }
+
             char[][] puzzleGrid = generatePuzzleGrid(solutionBoard);
 
+            for (char ch []: solutionBoard){
+                for (char c  : ch){
+                    System.out.print(c + " ");
+                }
+
+                System.out.println();
+            }
             response.setGrid(puzzleGrid);
             response.setClues(clues);
+            response.setWords(tempWords);
 
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
@@ -87,7 +107,10 @@ public class CrossWordGeneratorService {
         List <WordClue> pairs = new ArrayList<>();
 
         try {
-            pairs = wordsRepo.findAll();
+            pairs = wordsRepo.findAll()
+                    .stream()
+                    .filter(wordClue -> wordClue.getWord().length() >=2 && wordClue.getWord().length() <= placer.getSize())
+                    .toList();
             return pairs;
         }
         catch (Exception e){
