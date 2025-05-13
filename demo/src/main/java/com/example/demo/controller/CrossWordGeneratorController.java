@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.model.CrossWordResponse;
 import com.example.demo.service.CrossWordGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ public class CrossWordGeneratorController {
 
     @Autowired
     CrossWordGeneratorService service;
+
 
     @GetMapping("/generateCrossword/{size}")
     public ResponseEntity<?> gridStarter (@PathVariable int size){

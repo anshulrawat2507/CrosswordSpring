@@ -18,13 +18,8 @@ import java.util.*;
 public class CrossWordGeneratorService {
 
     @Autowired
-    private WordClue wordClue;
-
-    @Autowired
     private WordsRepository wordsRepo;
 
-    @Autowired
-    private CrosswordSolver solver;
 
     @Autowired
     private WordPlacer placer;
@@ -32,48 +27,60 @@ public class CrossWordGeneratorService {
     @Autowired
     private CrossWordResponse response;
 
-    public  ResponseEntity<?> gridStarter(int size) {
-
+    public ResponseEntity<?> gridStarter(int size) {
         char[][] solutionBoard = new char[size][size];
+        placer.setSize(size);
+
         for (char[] row : solutionBoard) Arrays.fill(row, '+');
 
         List<WordClue> wordClueList = readWordCluesFromDatabase();
 
+        // Filter by word length
         List<WordClue> filteredPairs = new ArrayList<>();
         for (WordClue wc : wordClueList) {
-                filteredPairs.add(new WordClue(wc.getWord().toUpperCase(), wc.getClue()));
+            String word = wc.getWord().toUpperCase();
+            if (word.length() <= size) {
+                filteredPairs.add(new WordClue(wc.getId(), word, wc.getClue()));
+            }
         }
 
-        // Randomly select 8-12 WordAndClues
-        int minWords = 6;
-        int maxWords = 12;
-        int numWords = Math.min(12, minWords + new Random().nextInt(maxWords - minWords + 1));
-        // new Random().nextInt generates a random number between (0,inclusive) and (maxWords-minWords+1, exclusive) here [0,7)
+        // Shuffle for randomness
+        Collections.shuffle(filteredPairs, new Random());
+
+        int minWords = 0;
+        int maxWords = 0;
+
+        if (size == 5){
+            minWords = 5;
+            maxWords = 10;
+        }
+
+        else {
+            minWords = 7;
+            maxWords = 14;
+        }
+        int numWords = Math.min(filteredPairs.size(), minWords + new Random().nextInt(maxWords - minWords + 1));
 
         List<WordClue> selectedPairs = filteredPairs.subList(0, numWords);
-
 
         String[] words = getWords(selectedPairs);
 
         if (placer.placeWords(solutionBoard, words, 0)) {
-
-            List <String> clues = new ArrayList<>();
-
+            List<String> clues = new ArrayList<>();
             for (WordClue wc : selectedPairs) {
-                clues.add(wc.getWord());
+                clues.add(wc.getClue());
             }
-
-            char [][] puzzleGrid = generatePuzzleGrid(solutionBoard);
+            char[][] puzzleGrid = generatePuzzleGrid(solutionBoard);
 
             response.setGrid(puzzleGrid);
             response.setClues(clues);
 
-
-            return new ResponseEntity<>(response,HttpStatus.OK);
+            return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-           return new ResponseEntity<>("Could not generate crossword with given words.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return new ResponseEntity<>("Could not generate crossword with given words.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
 
     public List <WordClue> readWordCluesFromDatabase() {
 
