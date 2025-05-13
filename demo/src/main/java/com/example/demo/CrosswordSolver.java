@@ -1,12 +1,17 @@
 package com.example.demo;
 
+import jakarta.persistence.Column;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@NoArgsConstructor
+@AllArgsConstructor
+
 public class CrosswordSolver {
 
     private int size;
-
-    public CrosswordSolver (int size){
-        this.size = size;
-    }
 
     public boolean  insertVerticallyIfPossible (int row, int col, int index, char[][] crossword, String[] words
             , boolean[][] wordFill){
@@ -164,11 +169,8 @@ public class CrosswordSolver {
         return false;
     }
 
-    public  char [][] crosswordPuzzle(char [][] crossword, StringBuffer  wordsString) {
+    public  char [][] crosswordPuzzle(char [][] crossword, String []words) {
 
-        String tempWords = wordsString.toString();
-
-        String[] words = tempWords.split(";");
 
         boolean[][] wordFill = new boolean [words.length][];
 
