@@ -1,39 +1,37 @@
-package com.example.demo;
+package com.example.demo.service;
 
+import com.example.demo.CrosswordPlacer;
+import com.example.demo.CrosswordSolver;
+import com.example.demo.GridGenerator;
 import com.example.demo.model.WordClue;
+import com.example.demo.repository.WordsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 
 
-@RestController
-@RequestMapping("/api")
-public class GridGenerator {
+@Service
+public class GridGeneratorService {
 
-    @RequestMapping("/GridStarter")
-    public static void GridStarter(String[] args) {
+    @Autowired
+    private WordClue wordClue;
 
+    @Autowired
+    private WordsRepository wordsRepo;
 
-        InputStream in = GridGenerator.class.getClassLoader().getResourceAsStream("words.csv");
-        if (in == null) {
-            System.out.println ("words.csv not found in resources!");
-        }
-        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+    @Autowired
+    private CrosswordSolver solver;
+    public  void GridStarter(String[] args) {
+
         int SIZE = CrosswordPlacer.SIZE;
         char[][] solutionBoard = new char[SIZE][SIZE];
         for (char[] row : solutionBoard) Arrays.fill(row, '+');
 
+        List<WordClue> wordClueList = readWordCluesFromDatabase();
 
-        List<WordClue> wordClueList = readWordCluesFromBufferedReader(br);
-
-
-        // Filter pairs by word length 3 to SIZE
         List<WordClue> filteredPairs = new ArrayList<>();
         for (WordClue wc : wordClueList) {
             if (wc.getWord().length() >= 3 && wc.getWord().length() <= SIZE) {
@@ -68,7 +66,7 @@ public class GridGenerator {
             char [][] puzzleGrid = generatePuzzleGrid(solutionBoard);
 
             printBoard(puzzleGrid);
-            char [][] result = CrosswordSolver.crosswordPuzzle(puzzleGrid,original);
+            char [][] result = solver.crosswordPuzzle(puzzleGrid,original);
 
             for (int i = 0; i < 7; i++) {
                 for (int j = 0; j < 7; j++){
@@ -83,7 +81,8 @@ public class GridGenerator {
 
     }
 
-    static List<WordClue> readWordCluesFromBufferedReader(BufferedReader br) {
+
+    public List <WordClue> readWordCluesFromDatabase() {
 //        List<WordClue> pairs = new ArrayList<>();
 //        try {
 //            String line;
@@ -106,12 +105,16 @@ public class GridGenerator {
         List <WordClue> pairs = new ArrayList<>();
 
         try {
-
+            pairs = wordsRepo.findAll();
+            return pairs;
+        }
+        catch (Exception e){
+            return null;
         }
     }
 
 
-    static char[][] generatePuzzleGrid(char[][] solution) {
+    public char[][] generatePuzzleGrid(char[][] solution) {
 
         int SIZE = CrosswordPlacer.SIZE;
         char[][] puzzle = new char[SIZE][SIZE];
@@ -125,7 +128,7 @@ public class GridGenerator {
 
         return puzzle;
     }
-    public static void printBoard (char [][]board){
+    public  void printBoard (char [][]board){
 
         for (char[] row : board){
             for (char ch : row){

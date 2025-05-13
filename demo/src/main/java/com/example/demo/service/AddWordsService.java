@@ -1,14 +1,12 @@
 package com.example.demo.service;
 
-import com.example.demo.model.WordClues;
+import com.example.demo.model.WordClue;
 import com.example.demo.model.WordsCsvRepresentation;
 import com.example.demo.repository.WordsRepository;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
-import org.apache.tomcat.jni.Buffer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSetMetaData;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,13 +25,13 @@ public class AddWordsService {
 
     public String addWordsToDatabase(MultipartFile file) throws IOException {
 
-        Set <WordClues> wordClues = parseCsv(file);
+        Set <WordClue> wordClues = parseCsv(file);
 
         wordsRepo.saveAll(wordClues);
         return "Database update successful: Words stored.";
     }
 
-    public Set<WordClues> parseCsv (MultipartFile file) throws IOException {
+    public Set<WordClue> parseCsv (MultipartFile file) throws IOException {
 
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))){
 
@@ -49,7 +47,7 @@ public class AddWordsService {
 
             return csvToBean.parse()
                     .stream()
-                    .map ( csv -> WordClues.builder()
+                    .map ( csv -> WordClue.builder()
                     .word(csv.getWord())
                     .clue(csv.getClue())
                     .build()

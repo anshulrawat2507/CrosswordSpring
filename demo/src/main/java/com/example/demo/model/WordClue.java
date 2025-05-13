@@ -1,9 +1,10 @@
 package com.example.demo.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 @Entity
 @Builder
@@ -12,9 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class WordClues {
+public class WordClue {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private String word;
     private String clue;
 

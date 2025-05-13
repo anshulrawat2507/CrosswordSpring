@@ -1,6 +1,5 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.WordClues;
 import com.example.demo.service.AddWordsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
