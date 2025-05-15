@@ -17,7 +17,7 @@ import java.util.List;
 public class CrossWordResponse {
 
     private List <String> words;
-    private  char [][]grid;
+    private List<String> grid;
     private List<String>clues;
 
 }

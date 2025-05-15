@@ -17,9 +17,7 @@ import org.springframework.stereotype.Component;
 
 public class WordClue {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    @Id @GeneratedValue Long id;
     private String word;
     private String clue;
 

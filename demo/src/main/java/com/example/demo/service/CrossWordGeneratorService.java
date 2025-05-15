@@ -23,41 +23,56 @@ public class CrossWordGeneratorService {
     private CrossWordResponse response;
 
     public ResponseEntity<?> gridStarter(int size) {
-        char[][] grid = getRecommendedGrid(size);
+        // 1) Build the base grid
+        char[][] base = getRecommendedGrid(size);
 
-        List<WordClue> wordClueList = readWordCluesFromDatabase(size);
-        Map<String, String> wordToClue = new HashMap<>();
-        List<String> words = new ArrayList<>();
+        // 2) Load only 3- and 5-letter words
+        List<WordClue> wordClueList = wordsRepo.findAll().stream()
+                .filter(wc -> {
+                    int len = wc.getWord().length();
+                    return len == 3 || len == 5;
+                })
+                .toList();
+
+        // 3) Insert into your trie
+        Map<String,String> wordToClue = new HashMap<>();
+        List<String> wordList = new ArrayList<>();
         for (WordClue wc : wordClueList) {
             String word = wc.getWord().toUpperCase();
-            String clue = wc.getClue();
-            words.add(word);
-            wordToClue.put(word, clue);
-            trie.insert(word, clue);
+            wordList.add(word);
+            wordToClue.put(word, wc.getClue());
+            trie.insert(word, wc.getClue());
         }
 
-        CrosswordWithBlacks generator = new CrosswordWithBlacks(words, grid, trie, wordToClue);
-        char[][] solutionBoard = generator.generate();
-
-        if (solutionBoard == null) {
-            return new ResponseEntity<>("Could not generate crossword with given words.", HttpStatus.INTERNAL_SERVER_ERROR);
+        // 4) Generate
+        CrosswordWithBlacks gen = new CrosswordWithBlacks(wordList, base, trie, wordToClue);
+        char[][] solution = gen.generate();
+        if (solution == null) {
+            return new ResponseEntity<>("Could not generate crossword", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        char[][] puzzleGrid = new char[size][size];
+        // 5) Convert to List<String> for your JSON response
+        List<String> jsonGrid = new ArrayList<>(size);
         for (int r = 0; r < size; r++) {
+            StringBuilder sb = new StringBuilder();
             for (int c = 0; c < size; c++) {
-                char ch = solutionBoard[r][c];
-                if (ch == 'x') puzzleGrid[r][c] = 'x';
-                else if (ch == '+') puzzleGrid[r][c] = '+';
-                else puzzleGrid[r][c] = '-';
+                char ch = solution[r][c];
+                if (ch == 'x') {
+                    sb.append('+');             // black square
+                } else {
+                    sb.append(ch);              // actual letter
+                }
             }
+            jsonGrid.add(sb.toString());
         }
 
-        response.setGrid(puzzleGrid);
-        response.setWords(generator.getPlacedWords());
-        response.setClues(generator.getPlacedClues());
+        // 6) Build a fresh response object
+        CrossWordResponse resp = new CrossWordResponse();
+        resp.setWords(gen.getPlacedWords());
+        resp.setGrid(jsonGrid);
+        resp.setClues(gen.getPlacedClues());
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return ResponseEntity.ok(resp);
     }
 
     private char[][] getRecommendedGrid(int size) {
