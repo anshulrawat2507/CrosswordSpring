@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 public class CrosswordSolver {
 
-    private int size;
+    private int size;   
 
     public boolean  insertVerticallyIfPossible (int row, int col, int index, char[][] crossword, String[] words
             , boolean[][] wordFill){
