@@ -10,13 +10,23 @@ public class CrosswordWithBlacks {
     private final char[][] grid;
     private final Map<String, String> wordToClue;
     private boolean found = false;
+    private long startTime;
+    private static final long TIMEOUT_MS = 15000; // 15 seconds timeout
 
     // To track only the words and clues actually placed in the grid
     private final List<String> placedWords = new ArrayList<>();
     private final List<String> placedClues = new ArrayList<>();
 
     public CrosswordWithBlacks(List<String> words, char[][] grid, Trie trie, Map<String, String> wordToClue) {
+        // Sort words by length (descending) and complexity for better placement
         this.words = new ArrayList<>(words);
+        this.words.sort((a, b) -> {
+            if (a.length() != b.length()) {
+                return b.length() - a.length(); // Longer words first
+            }
+            return countUncommonLetters(b) - countUncommonLetters(a);
+        });
+
         this.N = grid.length;
         this.grid = new char[N][N];
         for (int i = 0; i < N; i++)
@@ -25,7 +35,20 @@ public class CrosswordWithBlacks {
         this.wordToClue = wordToClue;
     }
 
+    // Helper method to count uncommon letters in a word
+    private int countUncommonLetters(String word) {
+        Set<Character> uncommonLetters = new HashSet<>(Arrays.asList('J', 'K', 'Q', 'X', 'Z'));
+        int count = 0;
+        for (char c : word.toCharArray()) {
+            if (uncommonLetters.contains(c)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public char[][] generate() {
+        startTime = System.currentTimeMillis();
         backtrack(0, 0);
         if (found) {
             char[][] solution = new char[N][N];
@@ -36,6 +59,11 @@ public class CrosswordWithBlacks {
     }
 
     private void backtrack(int row, int col) {
+        // Check for timeout
+        if (System.currentTimeMillis() - startTime > TIMEOUT_MS) {
+            return;
+        }
+
         if (found) return;
 
         if (row == N) {
@@ -44,20 +72,29 @@ public class CrosswordWithBlacks {
             }
             return;
         }
+
         if (col == N) {
             backtrack(row + 1, 0);
             return;
         }
+
         if (grid[row][col] == 'x') {
             backtrack(row, col + 1);
             return;
         }
+
+        // Early validation check for better pruning
+        if (!areCurrentSegmentsValid(row, col)) {
+            return;
+        }
+
         // Try to fill a horizontal slot starting at (row, col)
         if ((col == 0 || grid[row][col - 1] == 'x') && canFillSlot(row, col, true)) {
             int len = getSlotLength(row, col, true);
-            for (String word : words) {
+            List<String> candidateWords = getMatchingWords(len);
+            for (String word : candidateWords) {
                 if (found) return;
-                if (word.length() == len && canPlace(word, row, col, true) && !placedWords.contains(word)) {
+                if (canPlace(word, row, col, true) && !placedWords.contains(word)) {
                     char[] backup = place(word, row, col, true);
                     placedWords.add(word);
                     placedClues.add(wordToClue.get(word));
@@ -70,16 +107,18 @@ public class CrosswordWithBlacks {
                 }
             }
         }
+
         // Try to fill a vertical slot starting at (row, col)
         if ((row == 0 || grid[row - 1][col] == 'x') && canFillSlot(row, col, false)) {
             int len = getSlotLength(row, col, false);
-            for (String word : words) {
+            List<String> candidateWords = getMatchingWords(len);
+            for (String word : candidateWords) {
                 if (found) return;
-                if (word.length() == len && canPlace(word, row, col, false) && !placedWords.contains(word)) {
+                if (canPlace(word, row, col, false) && !placedWords.contains(word)) {
                     char[] backup = place(word, row, col, false);
                     placedWords.add(word);
                     placedClues.add(wordToClue.get(word));
-                    backtrack(row + len, col);
+                    backtrack(row, col + 1);
                     if (!found) { // Only backtrack if not found
                         placedWords.remove(placedWords.size() - 1);
                         placedClues.remove(placedClues.size() - 1);
@@ -88,6 +127,75 @@ public class CrosswordWithBlacks {
                 }
             }
         }
+
+        // If we can't place any word at this position, try the next position
+        backtrack(row, col + 1);
+    }
+
+    // Get words of specific length to reduce search space
+    private List<String> getMatchingWords(int length) {
+        List<String> result = new ArrayList<>();
+        for (String word : words) {
+            if (word.length() == length) {
+                result.add(word);
+            }
+        }
+        return result;
+    }
+
+    // New method for early validation
+    private boolean areCurrentSegmentsValid(int currentRow, int currentCol) {
+        // Check completed horizontal segments in the current row
+        int col = 0;
+        while (col < N) {
+            while (col < N && grid[currentRow][col] == 'x') col++;
+            int start = col;
+            while (col < N && grid[currentRow][col] != 'x') col++;
+            int end = col;
+
+            // If segment is complete (all filled with letters) and length >= 3, check if it's valid
+            if (end - start >= 3 && isSegmentComplete(currentRow, start, end, true)) {
+                StringBuilder word = new StringBuilder();
+                for (int i = start; i < end; i++) word.append(grid[currentRow][i]);
+                String w = word.toString();
+                if (!isAlpha(w)) continue;
+                if (!trie.search(w)) return false;
+            }
+        }
+
+        // Check completed vertical segments in the current column
+        int row = 0;
+        while (row < N) {
+            while (row < N && grid[row][currentCol] == 'x') row++;
+            int start = row;
+            while (row < N && grid[row][currentCol] != 'x') row++;
+            int end = row;
+
+            // If segment is complete and length >= 3, check if it's valid
+            if (end - start >= 3 && isSegmentComplete(start, currentCol, end, false)) {
+                StringBuilder word = new StringBuilder();
+                for (int i = start; i < end; i++) word.append(grid[i][currentCol]);
+                String w = word.toString();
+                if (!isAlpha(w)) continue;
+                if (!trie.search(w)) return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Check if a segment is completely filled (no '+' cells)
+    private boolean isSegmentComplete(int start, int pos, int end, boolean horizontal) {
+        if (horizontal) {
+            for (int i = start; i < end; i++) {
+                if (grid[start][i] == '+') return false;
+            }
+        } else {
+            for (int i = start; i < end; i++) {
+                if (grid[i][pos] == '+') return false;
+            }
+        }
+        return true;
     }
 
     private boolean canFillSlot(int row, int col, boolean horizontal) {
@@ -133,6 +241,7 @@ public class CrosswordWithBlacks {
             else grid[row + i][col] = backup[i];
         }
     }
+
     private boolean isAlpha(String s) {
         for (char c : s.toCharArray()) {
             if (c < 'A' || c > 'Z') return false;
