@@ -48,11 +48,11 @@ public class AddWordsService {
             return csvToBean.parse()
                     .stream()
                     .map ( csv -> WordClue.builder()
-                    .word(csv.getWord())
-                    .clue(csv.getClue())
-                    .build()
-            )
-            .collect(Collectors.toSet());
+                            .word(csv.getWord())
+                            .clue(csv.getClue())
+                            .build()
+                    )
+                    .collect(Collectors.toSet());
 
         }
     }

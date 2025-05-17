@@ -57,13 +57,13 @@ public class WordPlacer {
 
         if (col + word.length() > size) return false;
 
-        if (col > 0 && board[row][col - 1] != '+') return false;
-        if (col + word.length() < size && board[row][col + word.length()] != '+') return false;
-
         for (int i = 0; i < word.length(); i++) {
             char cell = board[row][col + i];
             if (cell == 'x' || (cell != '+' && cell != word.charAt(i))) return false;
         }
+
+        if (col > 0 && board[row][col - 1] != '+') return false;
+        if (col + word.length() < size && board[row][col + word.length()] != '+') return false;
 
         return true;
     }

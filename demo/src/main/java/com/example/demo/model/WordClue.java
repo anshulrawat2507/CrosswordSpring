@@ -18,8 +18,6 @@ public class WordClue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String word;
-    @Lob  // allows large text (up to 64KB for MySQL)
-    @Column(length = 1000)  // optional, gives a hint
     private String clue;
 
 }

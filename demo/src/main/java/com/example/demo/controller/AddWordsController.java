@@ -17,7 +17,7 @@ public class AddWordsController {
     @Autowired
     AddWordsService service;
 
-        @PostMapping(value = "/uploadWords", consumes = "multipart/form-data")
+    @PostMapping(value = "/uploadWords", consumes = "multipart/form-data")
     public ResponseEntity<?> addWordsToDatabase(@RequestPart("file")MultipartFile file){
 
         try {
