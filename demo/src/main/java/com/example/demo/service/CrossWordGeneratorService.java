@@ -1,25 +1,21 @@
 package com.example.demo.service;
 
-import com.example.demo.CrosswordSolver;
 import com.example.demo.model.CrossWordResponse;
 import com.example.demo.model.WordClue;
 import com.example.demo.model.WordPlacer;
 import com.example.demo.repository.WordsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
 
 @Service
 public class CrossWordGeneratorService {
 
     @Autowired
     private WordsRepository wordsRepo;
-
 
     @Autowired
     private WordPlacer placer;
@@ -35,7 +31,6 @@ public class CrossWordGeneratorService {
 
         List<WordClue> wordClueList = readWordCluesFromDatabase();
 
-        // Filter by word length
         List<WordClue> filteredPairs = new ArrayList<>();
         for (WordClue wc : wordClueList) {
             String word = wc.getWord().toUpperCase();
@@ -44,32 +39,49 @@ public class CrossWordGeneratorService {
             }
         }
 
-        // Shuffle for randomness
         Collections.shuffle(filteredPairs, new Random());
 
         int minWords = 0;
         int maxWords = 0;
 
-        if (size == 5){
+        if (size == 5) {
             minWords = 5;
             maxWords = 10;
-        }
-
-        else {
+        } else {
             minWords = 7;
             maxWords = 14;
         }
+
         int numWords = Math.min(filteredPairs.size(), minWords + new Random().nextInt(maxWords - minWords + 1));
-
         List<WordClue> selectedPairs = filteredPairs.subList(0, numWords);
-
         String[] words = getWords(selectedPairs);
 
         if (placer.placeWords(solutionBoard, words, 0)) {
+
+            // Clean up non-letter cells by keeping only valid letters or '+'
+            for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j++) {
+                    char ch = solutionBoard[i][j];
+                    if (!Character.isLetter(ch)) {
+                        solutionBoard[i][j] = '+';
+                    }
+                }
+            }
+
+            // Replace 'x' or 'X' with '+'
+            for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j++) {
+                    if (solutionBoard[i][j] == 'x' || solutionBoard[i][j] == 'X') {
+                        solutionBoard[i][j] = '+';
+                    }
+                }
+            }
+
             List<String> clues = new ArrayList<>();
             for (WordClue wc : selectedPairs) {
                 clues.add(wc.getClue());
             }
+
             char[][] puzzleGrid = generatePuzzleGrid(solutionBoard);
 
             response.setGrid(puzzleGrid);
@@ -81,46 +93,36 @@ public class CrossWordGeneratorService {
         return new ResponseEntity<>("Could not generate crossword with given words.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-
-    public List <WordClue> readWordCluesFromDatabase() {
-
-        List <WordClue> pairs = new ArrayList<>();
-
+    public List<WordClue> readWordCluesFromDatabase() {
         try {
-            pairs = wordsRepo.findAll();
-            return pairs;
-        }
-        catch (Exception e){
+            return wordsRepo.findAll();
+        } catch (Exception e) {
             return null;
         }
     }
 
-
     public char[][] generatePuzzleGrid(char[][] solution) {
-
         int size = placer.getSize();
         char[][] puzzle = new char[size][size];
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 char ch = solution[row][col];
-                if (ch == '+' || ch == 'x') puzzle[row][col] = '+';
-                else puzzle[row][col] = '-';
+                if (Character.isLetter(ch)) {
+                    puzzle[row][col] = '-'; // hide letters
+                } else {
+                    puzzle[row][col] = '+'; // block or empty
+                }
             }
         }
-
         return puzzle;
     }
 
-    public String[] getWords (List <WordClue> wordClue){
-
+    public String[] getWords(List<WordClue> wordClue) {
         String[] words = new String[wordClue.size()];
         int index = 0;
-
-        for (WordClue wc : wordClue){
+        for (WordClue wc : wordClue) {
             words[index++] = wc.getWord();
         }
         return words;
     }
-
 }
-
