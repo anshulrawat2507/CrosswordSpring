@@ -1,13 +1,13 @@
 import { cn } from '../lib/utils';
 
 export default function CrosswordCell({
-  cellContent,
-  userAnswer,
-  rowIndex,
+  cellContent,//correct letter for this cell
+  userAnswer,//answer user has typed
+  rowIndex,//positon int the grid
   colIndex,
-  isSelected,
-  isHighlighted,
-  cellNumber,
+  isSelected,//whether the cell is currently selected
+  isHighlighted,//whether this cell is part of current clue
+  cellNumber,//clue no.
   onClick
 }) {
   const isEmpty = cellContent === '';

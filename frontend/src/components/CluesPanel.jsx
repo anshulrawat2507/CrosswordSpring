@@ -11,7 +11,7 @@ export default function CluesPanel() {
     selectClue
   } = useCrossword();
   
-  const [activeTab, setActiveTab] = useState('across');
+  const [activeTab, setActiveTab] = useState('across');//tab-->lets the user switch between across and down clues
   
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">

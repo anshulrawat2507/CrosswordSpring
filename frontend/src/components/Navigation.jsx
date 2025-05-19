@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-
+// this component renders the nav bar at the top with links to Home,Play and HOW to play
 export default function Navigation() {
   return (
     <nav className="bg-blue-600 text-white p-4">

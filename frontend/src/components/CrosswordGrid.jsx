@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import useCrossword from '../hooks/useCrossword';
-import CrosswordCell from './CrosswordCell';
-
+import CrosswordCell from './CrosswordCell';//uses crossword cell and custom useCrossword hook for state/context
+//its the main grid that arranges all the cells
 export default function CrosswordGrid() {
   const {
     grid,
