@@ -1,8 +1,9 @@
+//main component that orchestrated the puzzle with 3 child components--> grid , clues and victorymodal(optional if used)
 import useCrossword from '../hooks/useCrossword';
 import CrosswordGrid from './CrosswordGrid';
 import CluesPanel from './CluesPanel';
 import VictoryModal from './VictoryModal';
-
+//this arranges the grid and clues side by side 
 export default function CrosswordPuzzle() {
   const { loading, showVictoryModal, fillingWithSolution } = useCrossword();
   
@@ -14,7 +15,7 @@ export default function CrosswordPuzzle() {
     );
   }
   
-  return (
+  return (//show solution calls filingWithSolution from context to fill the grid with correct answers
     <div>
       <div className="text-center mb-6">
         <button 

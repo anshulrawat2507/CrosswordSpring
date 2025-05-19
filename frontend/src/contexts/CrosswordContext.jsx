@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { mockCrosswordData } from '../data/mockCrosswordData';
-
+//mock data is imported from mockCrosswordData.js
 export const CrosswordContext = createContext();
 
 export function CrosswordProvider({ children }) {
