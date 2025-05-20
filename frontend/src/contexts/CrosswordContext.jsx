@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback } from 'react';//creating a context for sharing crossword state and actions across the components
 import { mockCrosswordData } from '../data/mockCrosswordData';
 //mock data is imported from mockCrosswordData.js
 export const CrosswordContext = createContext();
@@ -15,7 +15,9 @@ export function CrosswordProvider({ children }) {
   const [cellNumbers, setCellNumbers] = useState({});
   const [completedClues, setCompletedClues] = useState({ across: [], down: [] });
   const [showVictoryModal, setShowVictoryModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);//all state variables are intialized here
+//loading is set to true until the crossword data is fetched and processed
+
 
   // Initialize with mock data
   useEffect(() => {
@@ -72,7 +74,7 @@ export function CrosswordProvider({ children }) {
       }
     });
     
-    // Assign numbers to cells
+    // Assign numbers to cells and update state
     let numberCounter = 1;
     for (let row = 0; row < data.grid.length; row++) {
       for (let col = 0; col < data.grid[row].length; col++) {
