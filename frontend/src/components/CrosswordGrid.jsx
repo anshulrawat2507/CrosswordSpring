@@ -17,7 +17,7 @@ export default function CrosswordGrid() {
     toggleDirection
   } = useCrossword();
 
-  useEffect(() => {
+  useEffect(() => {//sets up keyboard navigation for the grid
     const handleKeyDown = (e) => {
       if (!selectedCell.row && selectedCell.row !== 0) return;
       
@@ -29,15 +29,15 @@ export default function CrosswordGrid() {
         selectCell(selectedCell.row - 1, selectedCell.col);
       } else if (e.key === 'ArrowDown') {
         selectCell(selectedCell.row + 1, selectedCell.col);
-      } else if (e.key === 'Enter' || e.key === ' ') {
+      } else if (e.key === 'Enter' || e.key === ' ') {//enter or splace toggles the direction
         toggleDirection();
-      } else if (e.key === 'Backspace') {
+      } else if (e.key === 'Backspace') {//backspace clears the current cell
         if (userAnswers[selectedCell.row]?.[selectedCell.col]) {
           updateAnswer(selectedCell.row, selectedCell.col, '');
         } else {
           moveToPrevCell();
         }
-      } else if (/^[a-zA-Z]$/.test(e.key)) {
+      } else if (/^[a-zA-Z]$/.test(e.key)) {//if a letter is pressed, fills the cell and moves to next
         updateAnswer(selectedCell.row, selectedCell.col, e.key);
         moveToNextCell();
       }
@@ -45,11 +45,12 @@ export default function CrosswordGrid() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, userAnswers, selectCell, updateAnswer, moveToNextCell, moveToPrevCell, toggleDirection]);
+  }, [selectedCell, userAnswers, selectCell, updateAnswer, moveToNextCell, moveToPrevCell, toggleDirection]);//dependecy array having states and functions used in the effect
 
   if (!grid.length) return null;
 
-  return (
+  return (//renders the grid with cells
+    //the grid is a 2D array of cells, each cell is a crossword cell that takes care of its own rendering and state
     <div className="grid grid-flow-row auto-rows-auto gap-px bg-gray-300 p-px w-fit mx-auto">
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="flex">

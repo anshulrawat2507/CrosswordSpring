@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import useCrossword from '../hooks/useCrossword';
 import { cn } from '../lib/utils';
-
+//component displays crossword clues in two tabs. highlights the selected clue and grays out completed clues
+//allows to switch tabs 
 export default function CluesPanel() {
   const {
     clues,
@@ -10,7 +11,7 @@ export default function CluesPanel() {
     completedClues,
     selectClue
   } = useCrossword();
-  
+  //local state that tracks which tab is active--across or down
   const [activeTab, setActiveTab] = useState('across');//tab-->lets the user switch between across and down clues
   
   return (

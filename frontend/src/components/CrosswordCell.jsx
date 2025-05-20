@@ -20,17 +20,17 @@ export default function CrosswordCell({
         isSelected && 'ring-2 ring-blue-500',
         isHighlighted && !isSelected && 'bg-blue-100'
       )}
-      onClick={isEmpty ? undefined : onClick}
+      onClick={isEmpty ? undefined : onClick}//if thee cell is empty,it shows dark background and does not allow clicking
     >
       {!isEmpty && (
         <>
           {cellNumber && (
             <div className="absolute top-0.5 left-0.5 text-xs text-gray-500">
-              {cellNumber}
+              {cellNumber}//if there's a clue no. , it shows it in top left corner in small gray text
             </div>
           )}
           <div className="flex items-center justify-center h-full text-lg font-medium">
-            {userAnswer}
+            {userAnswer}//shows user answer if cell is not empty
           </div>
         </>
       )}
