@@ -1,0 +1,24 @@
+CREATE DATABASE crossworddb;
+use crossworddb;
+
+-- Outer table
+CREATE TABLE word_sets (
+    set_id INT AUTO_INCREMENT PRIMARY KEY
+);
+
+-- Inner table
+CREATE TABLE words (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    set_id INT,
+    word VARCHAR(50) NOT NULL,
+    clue TEXT NOT NULL,
+    FOREIGN KEY (set_id) REFERENCES word_sets(set_id)
+);
+
+SELECT ws.set_id, w.word, w.clue
+FROM word_sets ws
+JOIN words w ON ws.set_id = w.set_id
+ORDER BY ws.set_id, w.id;
+
+select * from words
+

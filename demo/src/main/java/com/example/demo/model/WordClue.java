@@ -2,22 +2,24 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.stereotype.Component;
 
 @Entity
-@Builder
+@Table(name = "words")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Component
-
+@Builder
 public class WordClue {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String word;
-    private String clue;
 
+    @Column(name = "set_id")
+    private int setId;
+
+    private String word;
+
+    private String clue;
 }

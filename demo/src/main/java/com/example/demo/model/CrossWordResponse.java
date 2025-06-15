@@ -12,12 +12,21 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 @Component
 public class CrossWordResponse {
 
-    private  char [][]grid;
-    private List<String>clues;
-    private char [][]solution;
+    private char[][] grid;
+    private List<String> clues;
+    private char[][] solution;
+    private List<ClueStart> starts;
 
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ClueStart {
+        private int row;
+        private int col;
+        private int clueNumber;
+    }
 }

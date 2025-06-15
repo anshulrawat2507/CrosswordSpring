@@ -23,65 +23,57 @@ public class CrossWordGeneratorService {
     @Autowired
     private CrossWordResponse response;
 
+    // When no setId given, pick one automatically (random)
     public ResponseEntity<?> gridStarter(int size) {
+        List<Integer> allSetIds = wordsRepo.findAllDistinctSetIds();
+        if (allSetIds.isEmpty()) {
+            return new ResponseEntity<>("No word sets found in database.", HttpStatus.NOT_FOUND);
+        }
+        int randomSetId = allSetIds.get(new Random().nextInt(allSetIds.size()));
+        return gridStarter(size, (long) randomSetId);
+    }
+
+
+    // New overloaded method accepts setId to filter words by set
+    public ResponseEntity<?> gridStarter(int size, Long setId) {
         char[][] solutionBoard = new char[size][size];
         placer.setSize(size);
-
         for (char[] row : solutionBoard) Arrays.fill(row, '+');
 
-        List<WordClue> wordClueList = readWordCluesFromDatabase();
+        List<WordClue> wordClueList = readWordCluesFromDatabase(setId);
+        if (wordClueList == null || wordClueList.isEmpty()) {
+            return new ResponseEntity<>("No words found for setId: " + setId, HttpStatus.NOT_FOUND);
+        }
 
         List<WordClue> filteredPairs = new ArrayList<>();
         for (WordClue wc : wordClueList) {
             String word = wc.getWord().toUpperCase();
             if (word.length() <= size) {
-                filteredPairs.add(new WordClue(wc.getId(), word, wc.getClue()));
+                filteredPairs.add(WordClue.builder()
+                        .id(wc.getId())
+                        .setId(wc.getSetId())   // <-- include setId here!
+                        .word(word)
+                        .clue(wc.getClue())
+                        .build());
+
             }
         }
 
         Collections.shuffle(filteredPairs, new Random());
 
-        int minWords = 0;
-        int maxWords = 0;
-
-        if (size == 5) {
-            minWords = 5;
-            maxWords = 10;
-        } else {
-            minWords = 7;
-            maxWords = 14;
-        }
-
+        int minWords = (size == 5) ? 5 : 7;
+        int maxWords = (size == 5) ? 10 : 14;
         int numWords = Math.min(filteredPairs.size(), minWords + new Random().nextInt(maxWords - minWords + 1));
+
         List<WordClue> selectedPairs = filteredPairs.subList(0, numWords);
+
         String[] words = getWords(selectedPairs);
 
         if (placer.placeWords(solutionBoard, words, 0)) {
-
-            // Clean up non-letter cells by keeping only valid letters or '+'
-            for (int i = 0; i < size; i++) {
-                for (int j = 0; j < size; j++) {
-                    char ch = solutionBoard[i][j];
-                    if (!Character.isLetter(ch)) {
-                        solutionBoard[i][j] = '+';
-                    }
-                }
-            }
-
-            // Replace 'x' or 'X' with '+'
-            for (int i = 0; i < size; i++) {
-                for (int j = 0; j < size; j++) {
-                    if (solutionBoard[i][j] == 'x' || solutionBoard[i][j] == 'X') {
-                        solutionBoard[i][j] = '+';
-                    }
-                }
-            }
-
             List<String> clues = new ArrayList<>();
             for (WordClue wc : selectedPairs) {
                 clues.add(wc.getClue());
             }
-
             char[][] puzzleGrid = generatePuzzleGrid(solutionBoard);
 
             response.setGrid(puzzleGrid);
@@ -93,13 +85,19 @@ public class CrossWordGeneratorService {
         return new ResponseEntity<>("Could not generate crossword with given words.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    public List<WordClue> readWordCluesFromDatabase() {
-        try {
-            return wordsRepo.findAll();
-        } catch (Exception e) {
-            return null;
+    // Load words filtered by setId
+    public List<WordClue> readWordCluesFromDatabase(Long setId) {
+        List<WordClue> list = wordsRepo.findBySetId(setId.intValue());  // or cast properly
+        System.out.println("Fetching words for setId: " + setId);
+
+        if (list == null || list.isEmpty()) {
+            System.out.println("No words found for setId: " + setId);
         }
+
+        return list;
     }
+
+
 
     public char[][] generatePuzzleGrid(char[][] solution) {
         int size = placer.getSize();
@@ -107,11 +105,7 @@ public class CrossWordGeneratorService {
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 char ch = solution[row][col];
-                if (Character.isLetter(ch)) {
-                    puzzle[row][col] = '-'; // hide letters
-                } else {
-                    puzzle[row][col] = '+'; // block or empty
-                }
+                puzzle[row][col] = (ch == '+' || ch == 'x') ? '+' : '-';
             }
         }
         return puzzle;

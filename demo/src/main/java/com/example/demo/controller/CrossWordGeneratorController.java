@@ -5,11 +5,9 @@ import com.example.demo.service.CrossWordGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/api")
 
@@ -26,7 +24,16 @@ public class CrossWordGeneratorController {
             return new ResponseEntity<>("Invalid size. Please choose either 5 or 7 for the puzzle grid", HttpStatus.BAD_REQUEST);
         }
 
-        return new ResponseEntity<>(service.gridStarter(size),HttpStatus.OK);
+        return service.gridStarter(size);
+
+    }
+
+    @GetMapping("/generateCrossword/{size}/{setId}")
+    public ResponseEntity<?> gridStarter(@PathVariable int size, @PathVariable Long setId) {
+        if (size != 5 && size != 7) {
+            return new ResponseEntity<>("Invalid size. Please choose either 5 or 7 for the puzzle grid", HttpStatus.BAD_REQUEST);
+        }
+        return service.gridStarter(size, setId);
     }
 
 }
