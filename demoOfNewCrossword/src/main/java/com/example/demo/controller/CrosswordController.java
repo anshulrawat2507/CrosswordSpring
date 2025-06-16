@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
+import com.example.demo.model.CrosswordGrid;
 import com.example.demo.model.CrosswordRequest;
+import com.example.demo.repository.CrosswordGridRepository;
 import com.example.demo.service.CrosswordGeneratorService;
 import com.example.demo.service.DictionaryClueService;
 import com.example.demo.service.DictionaryService;
@@ -15,12 +17,14 @@ import java.util.List;
 public class CrosswordController {
 
     private final CrosswordGeneratorService generatorService;
+    private final CrosswordGridRepository gridRepository;
 
     @Autowired
     private DictionaryClueService clueService;
 
-    public CrosswordController(CrosswordGeneratorService generatorService) {
+    public CrosswordController(CrosswordGeneratorService generatorService, CrosswordGridRepository gridRepository) {
         this.generatorService = generatorService;
+        this.gridRepository = gridRepository;
     }
 
     @GetMapping("/generate")
@@ -38,12 +42,41 @@ public class CrosswordController {
                     maxSolutions
             );
 
-            return solutions.isEmpty()
-                    ? ResponseEntity.noContent().build()
-                    : ResponseEntity.ok(solutions);
+            if (solutions.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+
+            // Store ALL solutions in the database
+            for (String[] gridArray : solutions) {
+                CrosswordGrid grid = new CrosswordGrid();
+                grid.setGrid(String.join("\n", gridArray));
+                grid.setMinFrequency(minFrequency);
+                grid.setRequireUnique(requireUnique);
+                grid.setAllowDiagonal(allowDiagonal);
+                grid.setMaxSolutions(maxSolutions);
+
+                gridRepository.save(grid);
+            }
+
+            return ResponseEntity.ok(solutions);
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body("Error generating crossword: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/random")
+    public ResponseEntity<?> getRandomCrossword() {
+        try {
+            CrosswordGrid grid = gridRepository.findRandomGrid();
+            if (grid == null) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(grid);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error fetching random crossword: " + e.getMessage());
         }
     }
 
