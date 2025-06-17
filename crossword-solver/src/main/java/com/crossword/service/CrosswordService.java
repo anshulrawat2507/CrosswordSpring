@@ -42,15 +42,17 @@ public class CrosswordService {
             vTrie = new Trie();
             InputStream dictStreamV = getClass().getClassLoader().getResourceAsStream("dictionaries/scrabble_words");
             Objects.requireNonNull(dictStreamV, "Dictionary file not found");
+
             DictionaryLoader.loadWordsFromResource(
                     dictStreamV,
                     CrosswordSolver.SIZE_H,
-                    vTrie,
+                    vTrie, // ✅ Correct position for Trie
                     CrosswordSolver.MIN_FREQ_H,
                     freqs,
                     Set.of()
             );
         }
+
 
         CrosswordSolver solver = new CrosswordSolver(hTrie, vTrie);
         List<String> grids = solver.solveAndReturnGrids();
