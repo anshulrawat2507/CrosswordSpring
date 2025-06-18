@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 @CrossOrigin(origins = "http://localhost:5173")
 public class CrosswordController {
 
+    private String randomFinalGrid;
     @Autowired
     private CrosswordService service;
 
@@ -30,13 +31,13 @@ public class CrosswordController {
 
     @GetMapping("/random")
     public String getRandomCrossword() {
-        String grid = service.getRandomGrid();
+        String grid = randomFinalGrid;
         return grid != null ? grid : "No grids available in the database.";
     }
 
     @GetMapping("/random/details")
     public Map<String, Object> getRandomCrosswordWithWords() {
-        String grid = service.getRandomGrid();
+        String grid = randomFinalGrid;
         if (grid == null) {
             return Map.of("message", "No grids available in the database.");
         }
@@ -46,6 +47,7 @@ public class CrosswordController {
     @GetMapping("/random/clues")
     public Map<String, Object> getRandomCrosswordWithClues() {
         String grid = service.getRandomGrid();
+        randomFinalGrid = grid;
         if (grid == null) {
             return Map.of("message", "No grids available in the database.");
         }
@@ -58,10 +60,10 @@ public class CrosswordController {
     public SseEmitter solveWithSteps() {
         // 1) Get random crossword details
         Map<String, Object> details = getRandomCrosswordWithWords();
-        @SuppressWarnings("unchecked")
+
         List<String> horizontalWords = (List<String>) details.get("horizontal");
-        @SuppressWarnings("unchecked")
         List<String> verticalWords = (List<String>) details.get("vertical");
+
 
         // 2) Combine and shuffle words
         List<String> allWords = new ArrayList<>();
@@ -76,7 +78,7 @@ public class CrosswordController {
         }
 
         // 4) Set up SSE emitter
-        SseEmitter emitter = new SseEmitter(60_000L);
+        SseEmitter emitter = new SseEmitter(100_000L);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
         executor.execute(() -> {
@@ -105,7 +107,7 @@ public class CrosswordController {
                                 .data(event));
 
                         // Add small delay between steps for better visualization
-                        Thread.sleep(300);
+                        Thread.sleep(50);
 
                         if ("solved".equals(action)) {
                             emitter.complete();

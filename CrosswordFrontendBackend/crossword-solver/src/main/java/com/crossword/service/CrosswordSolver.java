@@ -168,7 +168,7 @@ public class CrosswordSolver {
 
                         if (solveCrosswordPuzzle(crossword, index+1, words, wordFill, listener))
                             return true;
-                        sleep(100);
+
 
                         removeHorizontal(i, j, index, crossword, words, wordFill);
                         if (listener != null) listener.onStep(crossword, index, "removed");

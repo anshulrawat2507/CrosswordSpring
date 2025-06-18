@@ -25,12 +25,19 @@ export const api = {
         console.log("[SSE] Received update:", event.data);
         const data = JSON.parse(event.data);
 
-        // Convert grid to frontend format (empty strings for empty cells)
-        const parsedGrid = data.grid.map((row) =>
-          typeof row === "string"
-            ? row.split("").map((cell) => (cell === "-" ? "" : cell))
-            : row.map((cell) => (cell === "-" ? "" : cell))
-        );
+        // Handle grid conversion safely
+        let parsedGrid = data.grid;
+        if (Array.isArray(parsedGrid)) {
+          if (typeof parsedGrid[0] === "string") {
+            parsedGrid = parsedGrid.map((row) =>
+              row.split("").map((cell) => (cell === "-" ? "" : cell))
+            );
+          } else if (Array.isArray(parsedGrid[0])) {
+            parsedGrid = parsedGrid.map((row) =>
+              row.map((cell) => (cell === "-" ? "" : cell))
+            );
+          }
+        }
 
         onUpdate({
           ...data,

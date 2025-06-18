@@ -19,7 +19,6 @@ export default function CrosswordGrid() {
   } = useCrossword();
 
   // Keyboard navigation
-  // In CrosswordGrid.js
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (solverRunning) return;
@@ -72,7 +71,8 @@ export default function CrosswordGrid() {
   if (!grid.length) return null;
 
   // Use solver grid if active, otherwise use regular grid
-  const displayGrid = solverGrid || grid;
+  // Use solverGrid if active, otherwise use regular grid
+  const displayGrid = solverRunning ? solverGrid || grid : grid;
   const cellSize = 56; // px
 
   return (
@@ -84,6 +84,7 @@ export default function CrosswordGrid() {
           minWidth: displayGrid.length * cellSize,
           minHeight: displayGrid[0].length * cellSize,
         }}
+        tabIndex={0} // Make focusable for keyboard events
       >
         {displayGrid.map((row, rowIdx) => (
           <div className="crossword-row flex" key={rowIdx}>

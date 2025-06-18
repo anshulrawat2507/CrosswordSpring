@@ -15,13 +15,25 @@ export default function CrosswordCell({
   // Determine what to display in the cell
   const displayContent = disabled ? cellContent : userAnswer || "";
 
+  // Determine background color based on highlight status
+  let backgroundColor = "#fff"; // default
+  if (isEmpty) {
+    backgroundColor = "#222";
+  } else if (isSelected) {
+    backgroundColor = "#ffe066";
+  } else if (isHighlighted === "correct") {
+    backgroundColor = "#c8e6c9"; // light green for correct
+  } else if (isHighlighted === "incorrect") {
+    backgroundColor = "#ffcdd2"; // light red for incorrect
+  } else if (isHighlighted) {
+    backgroundColor = "#d0ebff"; // light blue for regular highlight
+  }
+
   return (
     <div
       className={`crossword-cell${isEmpty ? " empty" : ""}${
         isSelected ? " selected" : ""
-      }${isHighlighted ? " highlighted" : ""}${
-        disabled ? " solver-active" : ""
-      }`}
+      }${disabled ? " solver-active" : ""}`}
       style={{
         width: cellSize,
         height: cellSize,
@@ -29,13 +41,7 @@ export default function CrosswordCell({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: isEmpty
-          ? "#222"
-          : isSelected
-          ? "#ffe066"
-          : isHighlighted
-          ? "#d0ebff"
-          : "#fff",
+        background: backgroundColor,
         position: "relative",
         fontSize: cellSize > 40 ? "1.5em" : "1.2em",
         cursor: isEmpty || disabled ? "default" : "pointer",
@@ -43,7 +49,6 @@ export default function CrosswordCell({
         transition: "all 0.2s",
         opacity: disabled ? 0.8 : 1,
       }}
-      // In CrosswordCell.js
       onClick={() => {
         if (!isEmpty && !disabled) {
           onClick();

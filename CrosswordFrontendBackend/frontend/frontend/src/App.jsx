@@ -1,9 +1,9 @@
-import { Routes, Route } from 'react-router-dom';
-import Navigation from './components/Navigation';
-import Home from './pages/Home';
-import Play from './pages/Play';
-import HowToPlay from './pages/HowToPlay';
-import { CrosswordProvider } from './contexts/CrosswordContext';
+import { Routes, Route } from "react-router-dom";
+import Navigation from "./components/Navigation";
+import Home from "./pages/Home";
+import Play from "./pages/Play";
+import HowToPlay from "./pages/HowToPlay";
+import { CrosswordProvider } from "./contexts/CrosswordContext";
 
 function App() {
   return (

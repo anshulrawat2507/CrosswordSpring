@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../services/api";
 
 export const CrosswordContext = createContext();
@@ -25,7 +25,9 @@ export function CrosswordProvider({ children }) {
   const [solverStep, setSolverStep] = useState(null);
   const [solverRunning, setSolverRunning] = useState(false);
   const [solverAction, setSolverAction] = useState(null);
-  let solverUnsubscribe = null;
+
+  const solverUnsubscribeRef = useRef(null);
+  const solutionTimerRef = useRef(null);
 
   // Helper functions
   const checkCompletedClues = useCallback(
@@ -236,9 +238,28 @@ export function CrosswordProvider({ children }) {
   const fillingWithSolution = useCallback(() => {
     if (solverRunning) return;
 
+    // Toggle solution display
+    if (showingSolution) {
+      setShowingSolution(false);
+      clearTimeout(solutionTimerRef.current);
+
+      // Reset to empty answers
+      const emptyAnswers = {};
+      for (let row = 0; row < solution.length; row++) {
+        emptyAnswers[row] = {};
+        for (let col = 0; col < solution[row].length; col++) {
+          emptyAnswers[row][col] = "";
+        }
+      }
+      setUserAnswers(emptyAnswers);
+      return;
+    }
+
+    // Show solution
     setShowingSolution(true);
     setUserAnswers(solution);
-    setTimeout(() => {
+
+    solutionTimerRef.current = setTimeout(() => {
       setShowingSolution(false);
       const emptyAnswers = {};
       for (let row = 0; row < solution.length; row++) {
@@ -249,7 +270,7 @@ export function CrosswordProvider({ children }) {
       }
       setUserAnswers(emptyAnswers);
     }, 15000);
-  }, [solution, solverRunning]);
+  }, [solution, solverRunning, showingSolution]);
 
   const startSolver = useCallback(() => {
     if (solverRunning) return;
@@ -258,22 +279,34 @@ export function CrosswordProvider({ children }) {
     setSolverRunning(true);
     setSolverStep(0);
     setSolverAction("starting");
-    setSolverGrid(null);
 
-    if (solverUnsubscribe) {
-      solverUnsubscribe();
+    // Initialize with empty grid
+    const emptyGrid = grid.map((row) =>
+      row.map((cell) => (cell === "" ? "" : "-"))
+    );
+    setSolverGrid(emptyGrid);
+
+    // Clear any existing subscription
+    if (solverUnsubscribeRef.current) {
+      solverUnsubscribeRef.current();
     }
 
-    solverUnsubscribe = api.subscribeToSolverSteps((data) => {
+    solverUnsubscribeRef.current = api.subscribeToSolverSteps((data) => {
       console.log("Solver update:", data);
 
-      const parsedGrid = Array.isArray(data.grid)
-        ? data.grid.map((row) =>
-            typeof row === "string"
-              ? row.split("").map((cell) => (cell === "-" ? "" : cell))
-              : row.map((cell) => (cell === "-" ? "" : cell))
-          )
-        : null;
+      // Handle grid conversion safely
+      let parsedGrid = data.grid;
+      if (Array.isArray(parsedGrid)) {
+        if (typeof parsedGrid[0] === "string") {
+          parsedGrid = parsedGrid.map((row) =>
+            row.split("").map((cell) => (cell === "-" ? "" : cell))
+          );
+        } else {
+          parsedGrid = parsedGrid.map((row) =>
+            row.map((cell) => (cell === "-" ? "" : cell))
+          );
+        }
+      }
 
       setSolverGrid(parsedGrid);
       setSolverStep(data.step);
@@ -281,17 +314,24 @@ export function CrosswordProvider({ children }) {
 
       if (data.action === "solved") {
         console.log("Solver completed!");
-        setTimeout(() => {
-          setSolverRunning(false);
-          setTimeout(() => {
-            setSolverGrid(null);
-            setSolverStep(null);
-            setSolverAction(null);
-          }, 2000);
-        }, 500);
+        setSolverRunning(false);
+        // Keep the solverGrid as the final solution
       }
     });
-  }, [solverRunning]);
+  }, [solverRunning, grid]);
+
+  // [Rest of the context implementation remains the same...]
+
+  const cancelSolver = useCallback(() => {
+    if (solverUnsubscribeRef.current) {
+      solverUnsubscribeRef.current();
+      solverUnsubscribeRef.current = null;
+    }
+    setSolverRunning(false);
+    setSolverGrid(null);
+    setSolverStep(null);
+    setSolverAction(null);
+  }, []);
 
   const resetPuzzle = useCallback(async () => {
     setLoading(true);
@@ -379,12 +419,19 @@ export function CrosswordProvider({ children }) {
       setCompletedClues({ across: [], down: [] });
       setShowVictoryModal(false);
       setShowingSolution(false);
-      setSolverGrid(null);
+      //setSolverGrid(null);
       setSolverStep(null);
       setSolverRunning(false);
       setSolverAction(null);
+
+      // Cancel any active solver
+      if (solverUnsubscribeRef.current) {
+        solverUnsubscribeRef.current();
+        solverUnsubscribeRef.current = null;
+      }
     } catch (error) {
       console.error("Error resetting puzzle:", error);
+      toast.error("Failed to load new puzzle");
     } finally {
       setLoading(false);
     }
@@ -393,7 +440,8 @@ export function CrosswordProvider({ children }) {
   useEffect(() => {
     resetPuzzle();
     return () => {
-      if (solverUnsubscribe) solverUnsubscribe();
+      if (solverUnsubscribeRef.current) solverUnsubscribeRef.current();
+      if (solutionTimerRef.current) clearTimeout(solutionTimerRef.current);
     };
   }, [resetPuzzle]);
 
@@ -413,9 +461,13 @@ export function CrosswordProvider({ children }) {
     },
     [cellNumbers, updateHighlightedCells, solverRunning]
   );
-
+  const clearSolverSolution = useCallback(() => {
+    setSolverGrid(null);
+    setSolverStep(null);
+    setSolverAction(null);
+  }, []);
   const value = {
-    grid: solverRunning ? solverGrid || grid : grid,
+    grid: solverGrid || grid,
     solution,
     clues,
     userAnswers,
@@ -425,10 +477,12 @@ export function CrosswordProvider({ children }) {
     highlightedCells,
     cellNumbers,
     completedClues,
+    clearSolverSolution,
     showVictoryModal,
     loading,
     showingSolution,
     solverGrid,
+    setHighlightedCells,
     solverStep,
     solverRunning,
     solverAction,
@@ -445,6 +499,7 @@ export function CrosswordProvider({ children }) {
     setSelectedClueNumber,
     setShowVictoryModal,
     startSolver,
+    cancelSolver,
   };
 
   return (
