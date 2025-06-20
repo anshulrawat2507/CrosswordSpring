@@ -1,7 +1,10 @@
 package com.crossword.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 @Entity
 public class CrosswordGrid {
 
@@ -9,7 +12,8 @@ public class CrosswordGrid {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob // To store the entire grid string (with \n) as a text
+    @Setter
+    @Lob
     private String grid;
 
     public CrosswordGrid() {}
@@ -18,15 +22,4 @@ public class CrosswordGrid {
         this.grid = grid;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getGrid() {
-        return grid;
-    }
-
-    public void setGrid(String grid) {
-        this.grid = grid;
-    }
 }
