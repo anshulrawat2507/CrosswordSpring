@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../services/api";
+import toast from "react-hot-toast";
 
 export const CrosswordContext = createContext();
 
@@ -35,68 +36,90 @@ export function CrosswordProvider({ children }) {
       const newCompleted = { across: [], down: [] };
 
       clues.across.forEach((clue) => {
-        for (const [key, value] of Object.entries(cellNumbers)) {
-          if (value === clue.number) {
-            const [startRow, startCol] = key.split("-").map(Number);
-            let isComplete = true;
-            let col = startCol;
-            let answerIndex = 0;
-
-            while (
-              col < grid[startRow].length &&
-              grid[startRow][col] !== "" &&
-              answerIndex < clue.answer.length
-            ) {
-              const userAnswer = answers[startRow]?.[col];
-              if (
-                !userAnswer ||
-                userAnswer.toUpperCase() !==
-                  solution[startRow][col].toUpperCase()
-              ) {
-                isComplete = false;
-                break;
-              }
-              col++;
-              answerIndex++;
+        // Use row/col directly from clue if available
+        const startRow = clue.row !== undefined ? clue.row : null;
+        const startCol = clue.col !== undefined ? clue.col : null;
+        
+        if (startRow === null || startCol === null) {
+          // Fallback to cellNumbers lookup
+          for (const [key, value] of Object.entries(cellNumbers)) {
+            if (value === clue.number) {
+              const [r, c] = key.split("-").map(Number);
+              checkAcrossClue(clue, r, c, answers, newCompleted);
+              break;
             }
-
-            if (isComplete) newCompleted.across.push(clue.number);
-            break;
           }
+        } else {
+          checkAcrossClue(clue, startRow, startCol, answers, newCompleted);
         }
       });
 
       clues.down.forEach((clue) => {
-        for (const [key, value] of Object.entries(cellNumbers)) {
-          if (value === clue.number) {
-            const [startRow, startCol] = key.split("-").map(Number);
-            let isComplete = true;
-            let row = startRow;
-            let answerIndex = 0;
-
-            while (
-              row < grid.length &&
-              grid[row][startCol] !== "" &&
-              answerIndex < clue.answer.length
-            ) {
-              const userAnswer = answers[row]?.[startCol];
-              if (
-                !userAnswer ||
-                userAnswer.toUpperCase() !==
-                  solution[row][startCol].toUpperCase()
-              ) {
-                isComplete = false;
-                break;
-              }
-              row++;
-              answerIndex++;
+        const startRow = clue.row !== undefined ? clue.row : null;
+        const startCol = clue.col !== undefined ? clue.col : null;
+        
+        if (startRow === null || startCol === null) {
+          for (const [key, value] of Object.entries(cellNumbers)) {
+            if (value === clue.number) {
+              const [r, c] = key.split("-").map(Number);
+              checkDownClue(clue, r, c, answers, newCompleted);
+              break;
             }
-
-            if (isComplete) newCompleted.down.push(clue.number);
-            break;
           }
+        } else {
+          checkDownClue(clue, startRow, startCol, answers, newCompleted);
         }
       });
+
+      function checkAcrossClue(clue, startRow, startCol, answers, newCompleted) {
+        let isComplete = true;
+        let col = startCol;
+        let answerIndex = 0;
+        const wordLength = clue.length || clue.answer.length;
+
+        while (answerIndex < wordLength && col < grid[startRow]?.length) {
+          if (grid[startRow][col] === "") break;
+          const userAnswer = answers[startRow]?.[col];
+          if (
+            !userAnswer ||
+            userAnswer.toUpperCase() !== solution[startRow][col].toUpperCase()
+          ) {
+            isComplete = false;
+            break;
+          }
+          col++;
+          answerIndex++;
+        }
+
+        if (isComplete && answerIndex === wordLength) {
+          newCompleted.across.push(clue.number);
+        }
+      }
+
+      function checkDownClue(clue, startRow, startCol, answers, newCompleted) {
+        let isComplete = true;
+        let row = startRow;
+        let answerIndex = 0;
+        const wordLength = clue.length || clue.answer.length;
+
+        while (answerIndex < wordLength && row < grid.length) {
+          if (grid[row]?.[startCol] === "") break;
+          const userAnswer = answers[row]?.[startCol];
+          if (
+            !userAnswer ||
+            userAnswer.toUpperCase() !== solution[row][startCol].toUpperCase()
+          ) {
+            isComplete = false;
+            break;
+          }
+          row++;
+          answerIndex++;
+        }
+
+        if (isComplete && answerIndex === wordLength) {
+          newCompleted.down.push(clue.number);
+        }
+      }
 
       setCompletedClues(newCompleted);
     },
@@ -336,29 +359,49 @@ export function CrosswordProvider({ children }) {
   const resetPuzzle = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.getRandomCrosswordWithClues();
+      // Use the new puzzle endpoint
+      const data = await api.getPuzzle();
+      
+      if (data.error) {
+        console.error("Error loading puzzle:", data.error);
+        toast.error("Failed to load puzzle");
+        return;
+      }
+
+      // Grid is already a 2D array from the new API
       const gridData = data.grid.map((row) =>
-        row.split("").map((cell) => (cell === "-" ? "" : cell))
+        row.map((cell) => (cell === "" ? "" : cell))
       );
       setGrid(gridData);
-      setSolution(gridData);
+      
+      // Create solution grid (same as grid but for checking answers)
+      const solutionData = data.grid.map((row) =>
+        row.map((cell) => (cell === "" ? "" : cell))
+      );
+      setSolution(solutionData);
 
+      // Format clues from the new API structure
       const formattedClues = {
-        across: Object.entries(data.horizontal || {}).map(
-          ([word, clue], idx) => ({
-            number: idx + 1,
-            clue,
-            answer: word,
-          })
-        ),
-        down: Object.entries(data.vertical || {}).map(([word, clue], idx) => ({
-          number: idx + 1,
-          clue,
-          answer: word,
+        across: (data.across || []).map((item) => ({
+          number: item.number,
+          clue: item.clue,
+          answer: item.answer,
+          row: item.row,
+          col: item.col,
+          length: item.length,
+        })),
+        down: (data.down || []).map((item) => ({
+          number: item.number,
+          clue: item.clue,
+          answer: item.answer,
+          row: item.row,
+          col: item.col,
+          length: item.length,
         })),
       };
       setClues(formattedClues);
 
+      // Initialize empty user answers
       const initialAnswers = {};
       for (let row = 0; row < gridData.length; row++) {
         initialAnswers[row] = {};
@@ -368,48 +411,26 @@ export function CrosswordProvider({ children }) {
       }
       setUserAnswers(initialAnswers);
 
+      // Calculate cell numbers based on clue positions
       const numbers = {};
-      const acrossStarts = new Set();
-      const downStarts = new Set();
+      const allCluePositions = new Map();
 
-      for (let row = 0; row < gridData.length; row++) {
-        for (let col = 0; col < gridData[row].length; col++) {
-          if (
-            gridData[row][col] !== "" &&
-            (col === 0 || gridData[row][col - 1] === "")
-          ) {
-            let c = col;
-            while (c < gridData[row].length && gridData[row][c] !== "") c++;
-            if (c - col >= 2) acrossStarts.add(`${row}-${col}`);
-          }
+      // Collect all clue starting positions
+      formattedClues.across.forEach((clue) => {
+        const key = `${clue.row}-${clue.col}`;
+        allCluePositions.set(key, clue.number);
+      });
+      formattedClues.down.forEach((clue) => {
+        const key = `${clue.row}-${clue.col}`;
+        if (!allCluePositions.has(key)) {
+          allCluePositions.set(key, clue.number);
         }
-      }
+      });
 
-      for (let row = 0; row < gridData.length; row++) {
-        for (let col = 0; col < gridData[row].length; col++) {
-          if (
-            gridData[row][col] !== "" &&
-            (row === 0 || gridData[row - 1][col] === "")
-          ) {
-            let r = row;
-            while (r < gridData.length && gridData[r][col] !== "") r++;
-            if (r - row >= 2) downStarts.add(`${row}-${col}`);
-          }
-        }
-      }
-
-      let numberCounter = 1;
-      for (let row = 0; row < gridData.length; row++) {
-        for (let col = 0; col < gridData[row].length; col++) {
-          const key = `${row}-${col}`;
-          if (
-            (acrossStarts.has(key) || downStarts.has(key)) &&
-            gridData[row][col] !== ""
-          ) {
-            numbers[key] = numberCounter++;
-          }
-        }
-      }
+      // Set cell numbers
+      allCluePositions.forEach((number, key) => {
+        numbers[key] = number;
+      });
       setCellNumbers(numbers);
 
       setSelectedCell({ row: null, col: null });
@@ -419,7 +440,6 @@ export function CrosswordProvider({ children }) {
       setCompletedClues({ across: [], down: [] });
       setShowVictoryModal(false);
       setShowingSolution(false);
-      //setSolverGrid(null);
       setSolverStep(null);
       setSolverRunning(false);
       setSolverAction(null);
@@ -450,16 +470,27 @@ export function CrosswordProvider({ children }) {
       if (solverRunning) return;
       setSelectedDirection(direction);
       setSelectedClueNumber(number);
-      for (const [key, value] of Object.entries(cellNumbers)) {
-        if (value === number) {
-          const [row, col] = key.split("-").map(Number);
-          setSelectedCell({ row, col });
-          updateHighlightedCells(row, col);
-          break;
+      
+      // Find the clue directly from the clues array (new structure has row/col)
+      const clueList = direction === "across" ? clues.across : clues.down;
+      const clue = clueList.find((c) => c.number === number);
+      
+      if (clue && clue.row !== undefined && clue.col !== undefined) {
+        setSelectedCell({ row: clue.row, col: clue.col });
+        updateHighlightedCells(clue.row, clue.col);
+      } else {
+        // Fallback to cellNumbers lookup
+        for (const [key, value] of Object.entries(cellNumbers)) {
+          if (value === number) {
+            const [row, col] = key.split("-").map(Number);
+            setSelectedCell({ row, col });
+            updateHighlightedCells(row, col);
+            break;
+          }
         }
       }
     },
-    [cellNumbers, updateHighlightedCells, solverRunning]
+    [clues, cellNumbers, updateHighlightedCells, solverRunning]
   );
   const clearSolverSolution = useCallback(() => {
     setSolverGrid(null);

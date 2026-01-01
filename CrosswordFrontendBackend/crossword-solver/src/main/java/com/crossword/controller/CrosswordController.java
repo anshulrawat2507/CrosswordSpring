@@ -1,10 +1,14 @@
 package com.crossword.controller;
 
+import com.crossword.model.CrosswordPuzzle;
 import com.crossword.repository.SolverStepListener;
 import com.crossword.service.CrosswordSolver;
+import com.crossword.service.CrosswordPuzzleService;
 import com.crossword.util.CrosswordClueBuilder;
 import com.crossword.util.CrosswordGridParser;
 import com.crossword.service.CrosswordService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -17,12 +21,18 @@ import java.util.concurrent.Executors;
 
 @RestController
 @RequestMapping("/api/crossword")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class CrosswordController {
 
     private String randomFinalGrid;
+    
     @Autowired
     private CrosswordService service;
+    
+    @Autowired
+    private CrosswordPuzzleService puzzleService;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping("/generate")
     public List<String> generateCrossword() throws IOException {
@@ -129,5 +139,135 @@ public class CrosswordController {
         return emitter;
     }
 
+    // ==================== NEW PROPER CROSSWORD ENDPOINTS ====================
 
+    @GetMapping("/puzzle")
+    public Map<String, Object> getRandomPuzzle() {
+        CrosswordPuzzle puzzle = puzzleService.getRandomPuzzle();
+        
+        if (puzzle == null) {
+            return Map.of("error", "No puzzles available");
+        }
+
+        try {
+            Map<String, Object> result = new LinkedHashMap<>();
+            
+            // Parse grid
+            JsonNode gridNode = objectMapper.readTree(puzzle.getGridData());
+            List<List<String>> grid = new ArrayList<>();
+            for (JsonNode row : gridNode) {
+                List<String> rowList = new ArrayList<>();
+                for (JsonNode cell : row) {
+                    rowList.add(cell.asText());
+                }
+                grid.add(rowList);
+            }
+            result.put("grid", grid);
+            result.put("gridSize", puzzle.getGridSize());
+
+            // Parse across clues
+            JsonNode acrossNode = objectMapper.readTree(puzzle.getAcrossClues());
+            List<Map<String, Object>> acrossClues = new ArrayList<>();
+            for (JsonNode clue : acrossNode) {
+                Map<String, Object> clueMap = new LinkedHashMap<>();
+                clueMap.put("number", clue.get("number").asInt());
+                clueMap.put("clue", clue.get("clue").asText());
+                clueMap.put("answer", clue.get("word").asText());
+                clueMap.put("row", clue.get("row").asInt());
+                clueMap.put("col", clue.get("col").asInt());
+                clueMap.put("length", clue.get("length").asInt());
+                acrossClues.add(clueMap);
+            }
+            result.put("across", acrossClues);
+
+            // Parse down clues
+            JsonNode downNode = objectMapper.readTree(puzzle.getDownClues());
+            List<Map<String, Object>> downClues = new ArrayList<>();
+            for (JsonNode clue : downNode) {
+                Map<String, Object> clueMap = new LinkedHashMap<>();
+                clueMap.put("number", clue.get("number").asInt());
+                clueMap.put("clue", clue.get("clue").asText());
+                clueMap.put("answer", clue.get("word").asText());
+                clueMap.put("row", clue.get("row").asInt());
+                clueMap.put("col", clue.get("col").asInt());
+                clueMap.put("length", clue.get("length").asInt());
+                downClues.add(clueMap);
+            }
+            result.put("down", downClues);
+
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", "Failed to parse puzzle: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/puzzle/new")
+    public Map<String, Object> generateNewPuzzle() {
+        CrosswordPuzzle puzzle = puzzleService.generatePuzzle();
+        
+        if (puzzle == null) {
+            return Map.of("error", "Failed to generate puzzle");
+        }
+        
+        puzzleService.savePuzzle(puzzle);
+        
+        // Return the newly generated puzzle
+        return getPuzzleAsMap(puzzle);
+    }
+
+    @GetMapping("/puzzle/count")
+    public Map<String, Object> getPuzzleCount() {
+        return Map.of("count", puzzleService.countPuzzles());
+    }
+
+    private Map<String, Object> getPuzzleAsMap(CrosswordPuzzle puzzle) {
+        try {
+            Map<String, Object> result = new LinkedHashMap<>();
+            
+            JsonNode gridNode = objectMapper.readTree(puzzle.getGridData());
+            List<List<String>> grid = new ArrayList<>();
+            for (JsonNode row : gridNode) {
+                List<String> rowList = new ArrayList<>();
+                for (JsonNode cell : row) {
+                    rowList.add(cell.asText());
+                }
+                grid.add(rowList);
+            }
+            result.put("grid", grid);
+            result.put("gridSize", puzzle.getGridSize());
+
+            JsonNode acrossNode = objectMapper.readTree(puzzle.getAcrossClues());
+            List<Map<String, Object>> acrossClues = new ArrayList<>();
+            for (JsonNode clue : acrossNode) {
+                Map<String, Object> clueMap = new LinkedHashMap<>();
+                clueMap.put("number", clue.get("number").asInt());
+                clueMap.put("clue", clue.get("clue").asText());
+                clueMap.put("answer", clue.get("word").asText());
+                clueMap.put("row", clue.get("row").asInt());
+                clueMap.put("col", clue.get("col").asInt());
+                clueMap.put("length", clue.get("length").asInt());
+                acrossClues.add(clueMap);
+            }
+            result.put("across", acrossClues);
+
+            JsonNode downNode = objectMapper.readTree(puzzle.getDownClues());
+            List<Map<String, Object>> downClues = new ArrayList<>();
+            for (JsonNode clue : downNode) {
+                Map<String, Object> clueMap = new LinkedHashMap<>();
+                clueMap.put("number", clue.get("number").asInt());
+                clueMap.put("clue", clue.get("clue").asText());
+                clueMap.put("answer", clue.get("word").asText());
+                clueMap.put("row", clue.get("row").asInt());
+                clueMap.put("col", clue.get("col").asInt());
+                clueMap.put("length", clue.get("length").asInt());
+                downClues.add(clueMap);
+            }
+            result.put("down", downClues);
+
+            return result;
+        } catch (Exception e) {
+            return Map.of("error", e.getMessage());
+        }
+    }
 }

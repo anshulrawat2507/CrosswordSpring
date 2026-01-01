@@ -8,9 +8,9 @@ import { CrosswordProvider } from "./contexts/CrosswordContext";
 function App() {
   return (
     <CrosswordProvider>
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
         <Navigation />
-        <div className="container mx-auto px-4 py-8">
+        <div className="pt-16">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/play" element={<Play />} />

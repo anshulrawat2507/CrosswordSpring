@@ -1,6 +1,18 @@
-const API_BASE_URL = "http://localhost:8080/api/crossword";
+const API_BASE_URL = "http://localhost:8081/api/crossword";
 
 export const api = {
+  // New proper crossword puzzle endpoint
+  getPuzzle: async () => {
+    const response = await fetch(`${API_BASE_URL}/puzzle`);
+    return response.json();
+  },
+
+  generateNewPuzzle: async () => {
+    const response = await fetch(`${API_BASE_URL}/puzzle/new`);
+    return response.json();
+  },
+
+  // Legacy endpoints (keeping for backwards compatibility)
   getRandomCrossword: async () => {
     const response = await fetch(`${API_BASE_URL}/random`);
     return response.text();
